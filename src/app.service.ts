@@ -9,7 +9,7 @@ export class AppService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    await this.run()
+    await this.run();
   }
 
   async run() {
@@ -22,53 +22,38 @@ export class AppService implements OnModuleInit {
     const brands = this.loadBrands();
 
     for (const mall of malls) {
-      const matchedBrands = this.matchBrandsForMall(
-        mall.directory,
-        brands,
-      );
+      const matchedBrands = this.matchBrandsForMall(mall.directory, brands);
 
       if (matchedBrands.length === 0) continue;
 
-      const savedMall = await this.prisma.mall.create({
+      await this.prisma.mall.create({
         data: {
           name: mall.Name,
           city: mall.City,
           state: mall.State,
           url: mall.URL,
+          brands: {
+            create: matchedBrands.map((brand) => ({
+              brandName: brand.name,
+              redeemUrl: brand.redeemUrl,
+              matchedStoreName: brand.matchedStore,
+            })),
+          },
         },
       });
-
-      for (const brand of matchedBrands) {
-        await this.prisma.mallBrand.create({
-          data: {
-            mallId: savedMall.id,
-            brandName: brand.name,
-            redeemUrl: brand.redeemUrl,
-            matchedStoreName: brand.matchedStore,
-          },
-        });
-      }
     }
 
     console.log('Mall brand mapping completed');
   }
 
   loadMalls() {
-    const filePath = path.join(
-      process.cwd(),
-      'data',
-      '1252_malls_final.json',
-    );
+    const filePath = path.join(process.cwd(), 'data', '1252_malls_final.json');
 
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   }
 
   loadBrands() {
-    const filePath = path.join(
-      process.cwd(),
-      'data',
-      'Offlinedump-new.csv',
-    );
+    const filePath = path.join(process.cwd(), 'data', 'Offlinedump-new.csv');
 
     const csv = fs.readFileSync(filePath, 'utf-8');
 
@@ -77,7 +62,7 @@ export class AppService implements OnModuleInit {
       skip_empty_lines: true,
     });
 
-    return records.map((r:any) => ({
+    return records.map((r: any) => ({
       name: r.name.trim(),
       redeemUrl: r.offline_redeemurl?.trim() ?? '',
       normalized: this.normalize(r.name),
@@ -85,11 +70,11 @@ export class AppService implements OnModuleInit {
   }
 
   // Matching strategy:
-   //Normalize store names and brand names
-   //Case-insensitive containment match
-   //Each brand appears once per mall
+  //Normalize store names and brand names
+  //Case-insensitive containment match
+  //Each brand appears once per mall
   matchBrandsForMall(storeNames: string[], brands: any[]) {
-    const results:any = [];
+    const results: any = [];
     const matched = new Set<string>();
 
     for (const store of storeNames) {
