@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// One record per mall where at least one brand is found
+model Mall {
+  id     Int    @id @default(autoincrement())
+  name   String
+  city   String
+  state  String
+  url    String
+
+  brands MallBrand[]
+}
+
+/// One record per brand per mall (no duplicates)
+model MallBrand {
+  id               Int    @id @default(autoincrement())
+  mallId           Int
+  brandName        String
+  redeemUrl        String
+  matchedStoreName String
+
+  mall Mall @relation(fields: [mallId], references: [id])
+
+  @@unique([mallId, brandName])
+}
